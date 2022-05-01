@@ -41,6 +41,7 @@ contract TimeLock {
         bytes data,
         uint256 timestamp
     );
+    event TxCancelled(bytes32 indexed txId);
 
     uint256 public immutable MIN_DELAY; //Minimum delay between queeuing and executing a transaction
     uint256 public immutable MAX_DELAY; //Maximum delay between queeuing and executing a transaction
@@ -150,6 +151,18 @@ contract TimeLock {
         emit TxExecuted(txId, _target, _value, _func, _data, _timestamp);
 
         return result;
+    }
+
+    //Cancel a queued transaction
+    function cancel(bytes32 _txId) external onlyOwner {
+        //Check tx is queued
+        if (!isTxQueued[_txId]) {
+            revert NotQueuedError(_txId);
+        }
+        // //Remove tx from queue
+        isTxQueued[_txId] = false;
+
+        emit TxCancelled(_txId);
     }
 }
 
