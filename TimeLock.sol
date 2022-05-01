@@ -11,6 +11,10 @@ contract TimeLock {
     );
     error NotQueuedError(bytes32 txId);
     error DelayNotPassedError(uint256 blockTimestamp, uint256 inputTimestamp);
+    error TimestampExpiredError(
+        uint256 blockTimestamp,
+        uint256 expiryTimestamp
+    );
 
     event TxQueued(
         bytes32 indexed txId,
@@ -23,14 +27,20 @@ contract TimeLock {
 
     uint256 public immutable MIN_DELAY; //Minimum delay between queeuing and executing a transaction
     uint256 public immutable MAX_DELAY; //Maximum delay between queeuing and executing a transaction
+    uint256 public immutable GRACE_PERIOD; //Grace period after input timestamp, within which a transaction can be executed
     address public immutable OWNER;
 
     mapping(bytes32 => bool) public isTxQueued; //Checks if a specific Transaction Id is currently queued
 
-    constructor(uint256 _minDelay, uint256 _maxDelay) {
+    constructor(
+        uint256 _minDelay,
+        uint256 _maxDelay,
+        uint256 _gracePeriod
+    ) {
         OWNER = msg.sender;
         MIN_DELAY = _minDelay;
         MAX_DELAY = _maxDelay;
+        GRACE_PERIOD = _gracePeriod;
     }
 
     receive() external payable {}
@@ -97,6 +107,13 @@ contract TimeLock {
         //Check delay has passed
         if (block.timestamp < _timestamp) {
             revert DelayNotPassedError(block.timestamp, _timestamp);
+        }
+        //check that timestamp is within valid execution range (grace period)
+        if (block.timestamp > _timestamp + GRACE_PERIOD) {
+            revert TimestampExpiredError(
+                block.timestamp,
+                _timestamp + GRACE_PERIOD
+            );
         }
         //Remove tx from queue
         //execute tx
