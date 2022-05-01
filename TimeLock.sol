@@ -9,6 +9,7 @@ contract TimeLock {
         uint256 blockTimestamp,
         uint256 inputTimestamp
     );
+    error NotQueuedError(bytes32 txId);
 
     event TxQueued(
         bytes32 indexed txId,
@@ -31,6 +32,8 @@ contract TimeLock {
         MAX_DELAY = _maxDelay;
     }
 
+    receive() external payable {}
+
     modifier onlyOwner() {
         if (msg.sender != OWNER) {
             revert NotOwnerError();
@@ -46,7 +49,7 @@ contract TimeLock {
         bytes calldata _data, //data to pass to _func
         uint256 _timestamp //timestamp after which transaction can be executed
     ) external onlyOwner {
-        //Create tx id
+        //Get tx id
         bytes32 txId = getTxId(_target, _value, _func, _data, _timestamp);
         //check txid is unique (not already queued)
         if (isTxQueued[txId]) {
@@ -76,7 +79,24 @@ contract TimeLock {
         return keccak256(abi.encode(_target, _value, _func, _data, _timestamp));
     }
 
-    function execute() external {}
+    //Execute valid transaction
+    function execute(
+        address _target, //address to call
+        uint256 _value, //value of ETH (wei) to send
+        string calldata _func, //function on target to call
+        bytes calldata _data, //data to pass to _func
+        uint256 _timestamp //timestamp after which transaction can be executed
+    ) external payable onlyOwner returns (bytes memory) {
+        //Get tx id
+        bytes32 txId = getTxId(_target, _value, _func, _data, _timestamp);
+        //Check tx is queued
+        if (!isTxQueued[txId]) {
+            revert NotQueuedError(txId);
+        }
+        //Check delay has passed
+        //Remove tx from queue
+        //execute tx
+    }
 }
 
 contract TestTimeLock {
