@@ -10,6 +10,7 @@ contract TimeLock {
         uint256 inputTimestamp
     );
     error NotQueuedError(bytes32 txId);
+    error DelayNotPassedError(uint256 blockTimestamp, uint256 inputTimestamp);
 
     event TxQueued(
         bytes32 indexed txId,
@@ -94,6 +95,9 @@ contract TimeLock {
             revert NotQueuedError(txId);
         }
         //Check delay has passed
+        if (block.timestamp < _timestamp) {
+            revert DelayNotPassedError(block.timestamp, _timestamp);
+        }
         //Remove tx from queue
         //execute tx
     }
