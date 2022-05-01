@@ -2,6 +2,14 @@
 
 pragma solidity 0.8.13;
 
+/// @title A simple Time Lock contract
+/// @author K1-R1
+/// @notice Contract owner can queue a unique transaction, but must wait a
+/// defined delay before executing; allowing other users to react to the transaction before it executes
+/// @dev Queued transactions must be scheduled to execute within a valid range as defined by MIN_DELAY
+/// and MAX_DELAY. Only the owner (deployer) can execute a transaction, as long as delay has been
+/// observed and the transaction is within the grace period after the specific timestamp scheduled for
+/// said transaction.
 contract TimeLock {
     error NotOwnerError();
     error AlreadyQueuedError(bytes32 txId);
@@ -15,8 +23,17 @@ contract TimeLock {
         uint256 blockTimestamp,
         uint256 expiryTimestamp
     );
+    error TxFailedError();
 
     event TxQueued(
+        bytes32 indexed txId,
+        address indexed target,
+        uint256 value,
+        string func,
+        bytes data,
+        uint256 timestamp
+    );
+    event TxExecuted(
         bytes32 indexed txId,
         address indexed target,
         uint256 value,
@@ -55,7 +72,7 @@ contract TimeLock {
     //Queue a valid transaction, that can only be executed after some delay
     function queue(
         address _target, //address to call
-        uint256 _value, //value of ETH (wei) to send
+        uint256 _value, //value of ETH (in wei) to send
         string calldata _func, //function on target to call
         bytes calldata _data, //data to pass to _func
         uint256 _timestamp //timestamp after which transaction can be executed
@@ -82,7 +99,7 @@ contract TimeLock {
     //Get ID of transaction derived from inputs via hashing
     function getTxId(
         address _target, //address to call
-        uint256 _value, //value of ETH (wei) to send
+        uint256 _value, //value of ETH (in wei) to send
         string calldata _func, //function on target to call
         bytes calldata _data, //data to pass to _func
         uint256 _timestamp //timestamp after which transaction can be executed
@@ -93,7 +110,7 @@ contract TimeLock {
     //Execute valid transaction
     function execute(
         address _target, //address to call
-        uint256 _value, //value of ETH (wei) to send
+        uint256 _value, //value of ETH (in wei) to send
         string calldata _func, //function on target to call
         bytes calldata _data, //data to pass to _func
         uint256 _timestamp //timestamp after which transaction can be executed
@@ -125,6 +142,14 @@ contract TimeLock {
             data = _data;
         }
         //execute tx
+        (bool success, bytes memory result) = _target.call{value: _value}(data);
+        if (!success) {
+            revert TxFailedError();
+        }
+
+        emit TxExecuted(txId, _target, _value, _func, _data, _timestamp);
+
+        return result;
     }
 }
 
