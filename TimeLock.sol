@@ -166,6 +166,7 @@ contract TimeLock {
     }
 }
 
+//A simple test contract
 contract TestTimeLock {
     address public timeLock;
 
