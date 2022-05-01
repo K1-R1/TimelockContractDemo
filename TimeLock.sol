@@ -4,8 +4,11 @@ pragma solidity 0.8.13;
 
 contract TimeLock {
     error NotOwnerError();
+    error AlreadyQueuedError(bytes32 txId);
 
     address public immutable OWNER;
+
+    mapping(bytes32 => bool) public isTxQueued; //Checks if a specific Transaction Id is currently queued
 
     constructor() {
         OWNER = msg.sender;
@@ -28,7 +31,10 @@ contract TimeLock {
     ) external onlyOwner {
         //Create tx id
         bytes32 txId = getTxId(_target, _value, _func, _data, _timestamp);
-        //check tx id unique
+        //check txid is unique (not already queued)
+        if (isTxQueued[txId]) {
+            revert AlreadyQueuedError(txId);
+        }
         //check timestamp
         //queue tx
     }
