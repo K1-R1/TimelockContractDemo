@@ -116,6 +116,14 @@ contract TimeLock {
             );
         }
         //Remove tx from queue
+        isTxQueued[txId] = false;
+        //Setup data for call
+        bytes memory data;
+        if (bytes(_func).length > 0) {
+            data = abi.encodePacked(bytes4(keccak256(bytes(_func))), _data);
+        } else {
+            data = _data;
+        }
         //execute tx
     }
 }
