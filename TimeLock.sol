@@ -10,6 +10,15 @@ contract TimeLock {
         uint256 inputTimestamp
     );
 
+    event TxQueued(
+        bytes32 indexed txId,
+        address indexed target,
+        uint256 value,
+        string func,
+        bytes data,
+        uint256 timestamp
+    );
+
     uint256 public immutable MIN_DELAY; //Minimum delay between queeuing and executing a transaction
     uint256 public immutable MAX_DELAY; //Maximum delay between queeuing and executing a transaction
     address public immutable OWNER;
@@ -51,6 +60,9 @@ contract TimeLock {
             revert TimestampNotInRangeError(block.timestamp, _timestamp);
         }
         //queue tx
+        isTxQueued[txId] = true;
+
+        emit TxQueued(txId, _target, _value, _func, _data, _timestamp);
     }
 
     //Get ID of transaction derived from inputs via hashing
